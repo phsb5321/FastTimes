@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.testing.Test
+import org.gradle.testing.jacoco.plugins.JacocoTaskExtension
+import org.gradle.testing.jacoco.tasks.JacocoReport
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -8,6 +11,7 @@ plugins {
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spotless)
+    jacoco
 }
 
 ksp {
@@ -115,6 +119,57 @@ kotlin {
     jvmToolchain(21)
 }
 
+jacoco {
+    toolVersion = "0.8.13"
+}
+
+tasks.withType<Test>().configureEach {
+    extensions.configure<JacocoTaskExtension> {
+        isIncludeNoLocationClasses = true
+        excludes = listOf("jdk.internal.*")
+    }
+}
+
+val generatedClassExclusions = listOf(
+    "**/R.class",
+    "**/R$*.class",
+    "**/BuildConfig.*",
+    "**/Manifest*.*",
+    "**/Dagger*.*",
+    "**/Hilt_*.*",
+    "**/*_Factory.*",
+    "**/*_HiltModules*.*",
+    "**/*_MembersInjector.*",
+    "dagger/**",
+    "hilt_aggregated_deps/**"
+)
+
+tasks.register<JacocoReport>("jacocoFossDebugReport") {
+    group = "verification"
+    description = "Generate deterministic XML coverage for the FOSS debug unit tests."
+    dependsOn("testFossDebugUnitTest")
+
+    reports {
+        xml.required.set(true)
+        xml.outputLocation.set(layout.buildDirectory.file("reports/jacoco/jacocoFossDebugReport/jacocoFossDebugReport.xml"))
+        html.required.set(true)
+        csv.required.set(false)
+    }
+
+    sourceDirectories.setFrom(files("src/main/java", "src/foss/java", "src/debug/java"))
+    classDirectories.setFrom(
+        layout.buildDirectory.dir("intermediates/classes/fossDebug/transformFossDebugClassesWithAsm/dirs")
+            .map { directory -> fileTree(directory).matching { exclude(generatedClassExclusions) } }
+    )
+    executionData.setFrom(layout.buildDirectory.file("jacoco/testFossDebugUnitTest.exec"))
+
+    doFirst {
+        check(executionData.files.any { it.isFile }) {
+            "Unit-test execution data is missing; refusing to emit a stale coverage report."
+        }
+    }
+}
+
 // Fix for "Task 'testDebugUnitTest' is ambiguous" error by aggregating flavor-specific debug unit tests
 tasks.register("testDebugUnitTest") {
     group = "verification"
@@ -164,6 +219,7 @@ dependencies {
     implementation(libs.compose.runtime)
 
     debugImplementation(libs.leakcanary.android)
+    debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -174,6 +230,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso)
     androidTestImplementation(platform(libs.compose.bom.beta))
     androidTestImplementation(libs.compose.ui.test.junit4)
-    androidTestImplementation(libs.mockk)
+    androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.kotlinx.coroutines.test)
 }
