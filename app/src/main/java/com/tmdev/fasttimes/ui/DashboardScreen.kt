@@ -33,14 +33,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -68,7 +65,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.CircularWavyProgressIndicator
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -78,8 +74,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -102,7 +96,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -112,9 +108,6 @@ import com.tmdev.fasttimes.R
 import com.tmdev.fasttimes.data.fast.Fast
 import com.tmdev.fasttimes.data.fast.FastingPhase
 import com.tmdev.fasttimes.data.profile.FastingProfile
-import com.tmdev.fasttimes.data.profile.durationMinutes
-import com.tmdev.fasttimes.ui.components.ExpressiveStatCard
-import com.tmdev.fasttimes.ui.components.rememberRandomExpressiveShape
 import com.tmdev.fasttimes.ui.dashboard.DashboardUiState
 import com.tmdev.fasttimes.ui.dashboard.DashboardViewModel
 import com.tmdev.fasttimes.ui.dashboard.DayProgress
@@ -122,6 +115,8 @@ import com.tmdev.fasttimes.ui.dashboard.FastingPhaseChip
 import com.tmdev.fasttimes.ui.dashboard.FastingPhaseInfoModal
 import com.tmdev.fasttimes.ui.dashboard.FastingPhasesCanvas
 import com.tmdev.fasttimes.ui.dashboard.FastingSummaryModal
+import com.tmdev.fasttimes.ui.dashboard.components.GoalPicker
+import com.tmdev.fasttimes.ui.dashboard.components.PerformanceSummary
 import com.tmdev.fasttimes.ui.editfast.EditFastRoute
 import com.tmdev.fasttimes.ui.theme.FastTimesTheme
 import com.tmdev.fasttimes.ui.theme.StreakColor
@@ -142,8 +137,9 @@ import java.time.format.TextStyle
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
-import kotlin.random.Random
 
+/** Clears the expanded FAB stack so the last section is never hidden behind it. */
+private val FabScrollClearance = 96.dp
 
 private val confettiParty = listOf(
     Party(
@@ -292,57 +288,23 @@ fun DashboardScreen(
                 // Skeleton Loading UI
                 SkeletonLoader()
             } else {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
-                ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     when (state) {
                         is DashboardUiState.Loading -> {
                             // Intentionally empty, handled by the skeleton loader
                         }
 
                         is DashboardUiState.NoFast -> {
-                            Column(modifier = Modifier.padding(MaterialTheme.spacing.cardPadding)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Set your goal",
-                                        style = MaterialTheme.typography.headlineMedium.copy(
-                                            fontSize = MaterialTheme.spacing.headlineMediumFontSize
-                                        ),
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    )
-                                    TextButton(
-                                        onClick = onManageProfilesClick,
-                                        contentPadding = PaddingValues(horizontal = 8.dp)
-                                    ) {
-                                        Text(
-                                            text = "Manage Profiles",
-                                            style = MaterialTheme.typography.labelMedium
-                                        )
-                                        Spacer(Modifier.width(4.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                                Spacer(Modifier.height(MaterialTheme.spacing.sectionSpacing))
-                                GoalSelectionSection(
-                                    profiles = profiles,
-                                    onStartFast = onStartFast,
-                                    onManageProfilesClick = onManageProfilesClick
-                                )
-                            }
+                            GoalPicker(
+                                profiles = profiles,
+                                onStartFast = onStartFast,
+                                onManageProfilesClick = onManageProfilesClick
+                            )
                         }
 
                         is DashboardUiState.FastingInProgress -> {
                             Column(
-                                modifier = Modifier.padding(MaterialTheme.spacing.cardPadding),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Row(
@@ -510,9 +472,7 @@ fun DashboardScreen(
                             )
 
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(MaterialTheme.spacing.cardPadding),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Row(
@@ -657,9 +617,7 @@ fun DashboardScreen(
 
                         is DashboardUiState.FastingGoalReached -> {
                             Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(MaterialTheme.spacing.cardPadding),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Row(
@@ -836,74 +794,21 @@ fun DashboardScreen(
                 }
 
                 // Statistics Section
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onStatisticsClick() }
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Performance",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontSize = MaterialTheme.spacing.headlineSmallFontSize
-                            ),
-                            modifier = Modifier.weight(1f),
-                            fontWeight = FontWeight.Bold
-                        )
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = "Go to Statistics"
-                        )
-                    }
+                val longestFastDuration = stats.longestFastThisMonth?.let {
+                    val hours = it.duration() / 3600000L
+                    "${hours}h"
+                } ?: "0h"
 
-                    val fastsMonthShape = rememberRandomExpressiveShape(seed = remember { Random.nextInt() })
-                    val longestFastMonthShape = rememberRandomExpressiveShape(seed = remember { Random.nextInt() })
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(1.dp)
-                    ) {
-                        // Fasts this month Card
-                        ExpressiveStatCard(
-                            modifier = Modifier.weight(1f),
-                            label = "Fasts",
-                            value = "${stats.fastsThisMonth}",
-                            unit = "this month",
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            shape = fastsMonthShape,
-                            height = MaterialTheme.spacing.dashboardStatCardHeight
-                        )
-
-                        // Longest fast this month Card
-                        val longestFastDuration = stats.longestFastThisMonth?.let {
-                             val durationMillis = it.duration()
-                             val hours = durationMillis / 3600000L
-                             "${hours}h"
-                        } ?: "0h"
-
-                        ExpressiveStatCard(
-                            modifier = Modifier.weight(1f),
-                            label = "Longest Fast",
-                            value = longestFastDuration,
-                            unit = "this month",
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                            shape = longestFastMonthShape,
-                            height = MaterialTheme.spacing.dashboardStatCardHeight
-                        )
-                    }
-                    Spacer(Modifier.height(8.dp))
-                }
+                PerformanceSummary(
+                    fastsThisMonth = "${stats.fastsThisMonth}",
+                    longestFastThisMonth = longestFastDuration,
+                    onStatisticsClick = onStatisticsClick
+                )
 
                 // History Section - only shown if streak is less than 2
                 if (stats.streak.daysInARow < 2) {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 320.dp),
+                        modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
                     ) {
                         Column(
@@ -912,7 +817,11 @@ fun DashboardScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onHistoryClick() }
+                                    .clickable(
+                                        onClickLabel = "Go to History",
+                                        role = Role.Button,
+                                        onClick = onHistoryClick
+                                    )
                                     .padding(MaterialTheme.spacing.cardPadding),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -946,7 +855,6 @@ fun DashboardScreen(
                                 } else {
                                     Column(
                                         modifier = Modifier
-                                            .verticalScroll(rememberScrollState())
                                             .padding(horizontal = MaterialTheme.spacing.cardPadding)
                                             .padding(bottom = MaterialTheme.spacing.cardPadding)
                                     ) {
@@ -961,11 +869,11 @@ fun DashboardScreen(
                                                     LastFastItem(
                                                         fast = fast,
                                                         locale = locale,
-                                                        modifier = Modifier.clickable {
-                                                            onViewFastDetails(
-                                                                fast.id
-                                                            )
-                                                        })
+                                                        modifier = Modifier.clickable(
+                                                            onClickLabel = "View fast details",
+                                                            role = Role.Button,
+                                                            onClick = { onViewFastDetails(fast.id) }
+                                                        ))
                                                     if (index < state.thisWeekFasts.lastIndex) {
                                                         HorizontalDivider(
                                                             modifier = Modifier.padding(
@@ -991,11 +899,11 @@ fun DashboardScreen(
                                                     LastFastItem(
                                                         fast = fast,
                                                         locale = locale,
-                                                        modifier = Modifier.clickable {
-                                                            onViewFastDetails(
-                                                                fast.id
-                                                            )
-                                                        })
+                                                        modifier = Modifier.clickable(
+                                                            onClickLabel = "View fast details",
+                                                            role = Role.Button,
+                                                            onClick = { onViewFastDetails(fast.id) }
+                                                        ))
                                                     if (index < state.lastWeekFasts.lastIndex) {
                                                         HorizontalDivider(
                                                             modifier = Modifier.padding(
@@ -1012,6 +920,8 @@ fun DashboardScreen(
                         }
                     }
                 }
+
+                Spacer(Modifier.height(FabScrollClearance))
             }
         }
 
@@ -1089,7 +999,11 @@ fun StreakCard(
             Row(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
-                    .clickable { onHistoryClick() }
+                    .clickable(
+                        onClickLabel = "Go to History",
+                        role = Role.Button,
+                        onClick = onHistoryClick
+                    )
                     .padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1293,7 +1207,10 @@ private fun SkeletonLoader() {
     val skeletonColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
     val density = LocalDensity.current
 
-    Column(verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sectionSpacing)) {
+    Column(
+        modifier = Modifier.testTag("DashboardSkeleton"),
+        verticalArrangement = Arrangement.spacedBy(MaterialTheme.spacing.sectionSpacing)
+    ) {
         // Current Fast Skeleton
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -1590,146 +1507,6 @@ private fun LastFastItem(
                 }
                 if (fast.rating != null) {
                     RatingBar(rating = fast.rating)
-                }
-            }
-        }
-    }
-}
-
-/**
- * Displays fasting profile options with a segmented button row for presets and
- * elevated cards for detailed profiles. Separates custom profile creation as a distinct action.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun GoalSelectionSection(
-    profiles: List<FastingProfile>,
-    onStartFast: (FastingProfile) -> Unit,
-    onManageProfilesClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Separate preset profiles from custom ones
-    val presetProfiles = profiles.filter { it.displayName in listOf("16:8", "18:6", "20:4") }
-    val customProfiles = profiles.filterNot { it.displayName in listOf("16:8", "18:6", "20:4") }
-
-    var selectedPresetIndex by remember { mutableStateOf<Int?>(null) }
-
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Segmented Buttons for Preset Fasting Windows
-        if (presetProfiles.isNotEmpty()) {
-            Text(
-                text = "Quick Select",
-                style = MaterialTheme.typography.labelLarge,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth(),
-                space = 8.dp
-            ) {
-                presetProfiles.forEachIndexed { index, profile ->
-                    SegmentedButton(
-                        selected = selectedPresetIndex == index,
-                        onClick = {
-                            selectedPresetIndex = index
-                            onStartFast(profile)
-                        },
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = profile.displayName,
-                            style = MaterialTheme.typography.labelLarge
-                        )
-                    }
-                }
-            }
-        }
-
-        // Elevated Cards for Detailed Fasting Profiles
-        if (customProfiles.isNotEmpty() || profiles.isEmpty()) {
-            if (presetProfiles.isNotEmpty()) {
-                Text(
-                    text = "More Options",
-                    style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.padding(horizontal = 8.dp)
-                )
-            }
-            FlowRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                maxItemsInEachRow = 2
-            ) {
-                customProfiles.forEach { profile ->
-                    ElevatedCard(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onStartFast(profile) },
-                        shape = MaterialTheme.shapes.large
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .align(Alignment.Center),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                if (profile.durationMinutes == 0L) {
-                                    // Display infinity symbol for 'Open Fast' profile
-                                    Text(
-                                        text = "∞",
-                                        style = MaterialTheme.typography.displaySmall.copy(
-                                            fontSize = MaterialTheme.spacing.goalCardValueFontSize
-                                        ),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                } else {
-                                    // Convert from milliseconds to hours
-                                    val hours = profile.durationMinutes / 3_600_000
-                                    Text(
-                                        text = "${hours}h",
-                                        style = MaterialTheme.typography.displaySmall.copy(
-                                            fontSize = MaterialTheme.spacing.goalCardValueFontSize
-                                        ),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = profile.displayName,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontSize = MaterialTheme.spacing.goalCardLabelFontSize
-                                    ),
-                                    fontWeight = FontWeight.Medium,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-
-                            // Favorite star indicator
-                            if (profile.isFavorite) {
-                                Icon(
-                                    imageVector = Icons.Filled.Star,
-                                    contentDescription = "Favorite",
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .size(20.dp),
-                                    tint = FastTimesTheme.accentColor
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }

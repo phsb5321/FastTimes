@@ -48,7 +48,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tmdev.fasttimes.ui.components.ExpressiveStatCard
-import com.tmdev.fasttimes.ui.components.rememberRandomExpressiveShape
 import com.tmdev.fasttimes.ui.editfast.EditFastRoute
 import com.tmdev.fasttimes.ui.theme.spacing
 import java.time.format.DateTimeFormatter
@@ -150,15 +149,6 @@ private fun MonthlyStats(
 ) {
     val monthFormatter = remember(locale) { DateTimeFormatter.ofPattern("MMMM", locale) }
     
-    // Stable random seeds for shapes based on the displayed month
-    val monthSeed = remember(uiState.displayedMonth) { 
-        uiState.displayedMonth.year * 12 + uiState.displayedMonth.monthValue 
-    }
-    
-    val shape1 = rememberRandomExpressiveShape(seed = monthSeed)
-    val shape2 = rememberRandomExpressiveShape(seed = monthSeed + 1)
-    val shape3 = rememberRandomExpressiveShape(seed = monthSeed + 2)
-
     Column(modifier = Modifier.padding(top = MaterialTheme.spacing.large)) {
         Text(
             text = "${uiState.displayedMonth.format(monthFormatter)} Summary",
@@ -178,7 +168,6 @@ private fun MonthlyStats(
                 unit = "completed",
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                shape = shape1,
                 height = MaterialTheme.spacing.dashboardStatCardHeight
             )
             
@@ -189,7 +178,6 @@ private fun MonthlyStats(
                 unit = "this month",
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                shape = shape2,
                 height = MaterialTheme.spacing.dashboardStatCardHeight
             )
             
@@ -200,7 +188,6 @@ private fun MonthlyStats(
                 unit = "duration",
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                shape = shape3,
                 height = MaterialTheme.spacing.dashboardStatCardHeight
             )
         }

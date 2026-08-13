@@ -25,34 +25,22 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.graphics.shapes.RoundedPolygon
-import androidx.graphics.shapes.toPath
 import com.tmdev.fasttimes.ui.theme.spacing
-import kotlin.math.abs
 
 /**
- * An expressive summary card with a custom [Shape].
+ * A summary card whose geometry is a Material [Shape] token, not a generated polygon.
  * Content is centered and sized to fit comfortably with flexible sizing.
  */
 @Composable
@@ -62,8 +50,8 @@ fun ExpressiveStatCard(
     unit: String,
     containerColor: Color,
     contentColor: Color,
-    shape: Shape,
     modifier: Modifier = Modifier,
+    shape: Shape = MaterialTheme.shapes.large,
     height: Dp = 240.dp
 ) {
     Card(
@@ -79,7 +67,7 @@ fun ExpressiveStatCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 4.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -116,59 +104,4 @@ fun ExpressiveStatCard(
             )
         }
     }
-}
-
-/**
- * Creates a [Shape] from a [RoundedPolygon], scaled uniformly to 95% and centered.
- */
-@ExperimentalMaterial3ExpressiveApi
-@Composable
-fun rememberPolygonShape(polygon: RoundedPolygon): Shape {
-    return remember(polygon) {
-        object : Shape {
-            override fun createOutline(
-                size: Size,
-                layoutDirection: LayoutDirection,
-                density: Density
-            ): Outline {
-                val path = polygon.toPath().asComposePath()
-                val bounds = path.getBounds()
-                val matrix = Matrix()
-                
-                // Use uniform scaling to 95% of original size to prevent stretching
-                val scale = minOf(size.width / bounds.width, size.height / bounds.height) * 0.95f
-
-                // Center and scale to fit destination box
-                matrix.translate(size.width / 2f, size.height / 2f)
-                matrix.scale(scale, scale)
-                matrix.translate(-(bounds.left + bounds.width / 2f), -(bounds.top + bounds.height / 2f))
-                
-                path.transform(matrix)
-                return Outline.Generic(path)
-            }
-        }
-    }
-}
-
-/**
- * Returns a random expressive shape from the [MaterialShapes] collection.
- */
-@ExperimentalMaterial3ExpressiveApi
-@Composable
-fun rememberRandomExpressiveShape(seed: Int): Shape {
-    val shapes = remember {
-        listOf(
-            MaterialShapes.Pentagon,
-            MaterialShapes.Clover8Leaf,
-            MaterialShapes.Sunny,
-            MaterialShapes.Cookie9Sided,
-            MaterialShapes.Ghostish,
-            MaterialShapes.Slanted,
-            MaterialShapes.Gem,
-            MaterialShapes.Clover4Leaf
-        )
-    }
-    // Using abs to handle potential negative seed results
-    val polygon = shapes[abs(seed) % shapes.size]
-    return rememberPolygonShape(polygon)
 }
