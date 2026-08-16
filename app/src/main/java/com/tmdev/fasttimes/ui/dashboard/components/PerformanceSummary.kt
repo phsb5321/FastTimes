@@ -33,8 +33,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.tmdev.fasttimes.ui.theme.spacing
 
@@ -72,15 +70,11 @@ fun PerformanceSummary(
             Text(
                 text = "Performance",
                 style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics {
-                        contentDescription = "Open statistics"
-                    }
+                modifier = Modifier.weight(1f)
             )
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Go to Statistics"
+                contentDescription = null
             )
         }
 

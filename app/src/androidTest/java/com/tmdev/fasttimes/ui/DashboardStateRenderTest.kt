@@ -23,7 +23,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Density
@@ -165,11 +168,13 @@ class DashboardStateRenderTest {
     }
 
     @Test
-    fun no_fast_state_renders_at_200_percent_font_and_pseudo_locale() {
-        val pseudoLocale = Locale.forLanguageTag("en-XA")
+    fun no_fast_state_renders_meaningful_labels_at_200_percent_font_and_locale_override() {
+        // en-XA is a locale override, not resource pseudolocalization: the dashboard strings are
+        // hardcoded literals, so no translated resource is exercised and none is claimed.
+        val localeOverride = Locale.forLanguageTag("en-XA")
         val profiles = listOf(
-            FastingProfile(1, "16:8", 16, "A deliberately long goal description", true),
-            FastingProfile(2, "18:6", 18, "Another goal description", false)
+            FastingProfile(1, "16:8", 16 * 3_600_000L, "A deliberately long goal description", true),
+            FastingProfile(2, "18:6", 18 * 3_600_000L, "Another goal description", false)
         )
         every { mockViewModel.profiles } returns MutableStateFlow(profiles)
         every { mockViewModel.uiState } returns MutableStateFlow(
@@ -183,15 +188,24 @@ class DashboardStateRenderTest {
 
         renderDashboard(
             fontScale = 2f,
-            locale = pseudoLocale
+            locale = localeOverride
         )
 
         composeTestRule.runOnIdle {
             assertEquals(2f, observedFontScale)
-            assertEquals(pseudoLocale, observedLocale)
+            assertEquals(localeOverride, observedLocale)
         }
         composeTestRule.onNodeWithText("Set your goal").assertIsDisplayed()
         composeTestRule.onNodeWithText("16:8", substring = true).assertIsDisplayed()
         composeTestRule.onNodeWithText("18:6", substring = true).assertIsDisplayed()
+        // Realistic production-unit (millisecond) durations render as the goal glyphs, not "0h".
+        composeTestRule.onNodeWithText("16h").assertIsDisplayed()
+        composeTestRule.onNodeWithText("18h").assertIsDisplayed()
+        // The Performance header is one clickable node with a single label; the arrow is decorative.
+        composeTestRule.onNodeWithContentDescription("Open statistics").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Go to Statistics").assertDoesNotExist()
+        composeTestRule
+            .onNode(hasText("Performance") and hasClickAction())
+            .assertExists()
     }
 }
