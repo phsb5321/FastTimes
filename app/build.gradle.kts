@@ -164,6 +164,7 @@ dependencies {
     implementation(libs.compose.runtime)
 
     debugImplementation(libs.leakcanary.android)
+    debugImplementation(libs.compose.ui.test.manifest)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
@@ -174,6 +175,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso)
     androidTestImplementation(platform(libs.compose.bom.beta))
     androidTestImplementation(libs.compose.ui.test.junit4)
-    androidTestImplementation(libs.mockk)
+    androidTestImplementation(libs.mockk.android)
     androidTestImplementation(libs.kotlinx.coroutines.test)
 }

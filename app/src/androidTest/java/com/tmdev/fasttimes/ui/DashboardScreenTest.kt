@@ -21,6 +21,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.tmdev.fasttimes.data.AppTheme
 import com.tmdev.fasttimes.data.fast.Fast
@@ -31,6 +32,7 @@ import com.tmdev.fasttimes.ui.dashboard.DashboardViewModel
 import com.tmdev.fasttimes.ui.theme.FastTimesTheme
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
 import org.junit.Rule
@@ -55,15 +57,7 @@ class DashboardScreenTest {
         every { mockViewModel.completedFast } returns (MutableStateFlow(null))
     }
 
-    @Test
-    fun fab_is_visible_when_no_fast_in_progress() {
-        every { mockViewModel.uiState } returns (MutableStateFlow(DashboardUiState.NoFast(
-            thisWeekFasts = emptyList(),
-            lastWeekFasts = emptyList(),
-            lastFast = null,
-            showFab = true
-        )))
-
+    private fun renderDashboard() {
         composeTestRule.setContent {
             FastTimesTheme(
                 theme = AppTheme.LIGHT,
@@ -81,6 +75,19 @@ class DashboardScreenTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun fab_is_visible_when_no_fast_in_progress() {
+        every { mockViewModel.uiState } returns (MutableStateFlow(DashboardUiState.NoFast(
+            thisWeekFasts = emptyList(),
+            lastWeekFasts = emptyList(),
+            lastFast = null,
+            showFab = true
+        )))
+
+        renderDashboard()
+
         composeTestRule.onNodeWithContentDescription("Add Fast").assertIsDisplayed()
     }
 
@@ -106,24 +113,10 @@ class DashboardScreenTest {
             )
         )
 
-        composeTestRule.setContent {
-            FastTimesTheme(
-                theme = AppTheme.LIGHT,
-                seedColor = Color.Blue,
-                accentColor = Color.Blue,
-                useExpressiveTheme = false,
-                useSystemColors = false
-            ) {
-                DashboardScreen(
-                    onHistoryClick = {},
-                    onStatisticsClick = {},
-                    onViewFastDetails = {},
-                    onManageProfilesClick = {},
-                    viewModel = mockViewModel
-                )
-            }
-        }
+        renderDashboard()
+
         composeTestRule.onNodeWithText("End Fast").assertIsDisplayed()
+
     }
 
     @Test
@@ -140,25 +133,29 @@ class DashboardScreenTest {
             showFab = true
         )))
 
-        composeTestRule.setContent {
-            FastTimesTheme(
-                theme = AppTheme.LIGHT,
-                seedColor = Color.Blue,
-                accentColor = Color.Blue,
-                useExpressiveTheme = false,
-                useSystemColors = false
-            ) {
-                DashboardScreen(
-                    onHistoryClick = {},
-                    onStatisticsClick = {},
-                    onViewFastDetails = {},
-                    onManageProfilesClick = {},
-                    viewModel = mockViewModel
-                )
-            }
-        }
+        renderDashboard()
 
-        composeTestRule.onNodeWithText("16:8").assertIsDisplayed()
-        composeTestRule.onNodeWithText("18:6").assertIsDisplayed()
+        composeTestRule.onNodeWithText("16:8", substring = true).assertIsDisplayed()
+        composeTestRule.onNodeWithText("18:6", substring = true).assertIsDisplayed()
     }
+
+    @Test
+    fun tapping_the_primary_profile_starts_that_profile() {
+        val primaryProfile = FastingProfile(1, "16:8", 16, "desc", true)
+        every { mockViewModel.profiles } returns MutableStateFlow(listOf(primaryProfile))
+        every { mockViewModel.uiState } returns MutableStateFlow(
+            DashboardUiState.NoFast(
+                thisWeekFasts = emptyList(),
+                lastWeekFasts = emptyList(),
+                lastFast = null,
+                showFab = true
+            )
+        )
+
+        renderDashboard()
+        composeTestRule.onNodeWithText("16:8", substring = true).performClick()
+
+        verify(exactly = 1) { mockViewModel.startProfileFast(primaryProfile) }
+    }
+
 }
