@@ -40,6 +40,17 @@ ends at API 36. Do not lower `compileSdk` or count this as successful Android
 acceptance. No connected tests or full CodeQL extraction have run for this fix.
 The CI failure logs and source comparison establish the defects, but these
 patches remain runtime-unverified until the acceptance above succeeds.
+The local Gradle acceptance command was also bounded at 240 seconds and timed
+out before task output; it did not produce a test, lint, or build pass.
+
+Verified locally:
+
+- `git diff --check`, shell syntax, and instrumentation-parser self-tests pass.
+- `actionlint` and `zizmor --pedantic` report no workflow findings.
+- Source checks confirm every dashboard-collected flow is explicitly stubbed in
+  all three fixtures (including the sibling responsive tests).
+- An isolated preflight check with a stub Java/build executable refuses an
+  API-35-only SDK and reaches the build with API 37. This is not Android acceptance.
 
 No production source, dependency, permission, assertion, or health copy changed.
 Rollback after a squash merge: `git revert <merge-commit>` via a normal PR.
